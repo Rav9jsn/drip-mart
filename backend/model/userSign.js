@@ -35,26 +35,37 @@ module.exports = class User {
   }
 
   async loggedIn(email, password) {
-    const db = getdb();
-    const user = await db.collection("User").findOne({ email: email });
+  const db = getdb();
 
-    const IspasswordSame = await bcrypt.compare(password, user.password);
-    const jwtToken = jwt.sign({ name: user.name, email: user.email }, key, {
-      expiresIn: "24h",
-    });
-    if (IspasswordSame) {
-      return {
-        message: "Logged In successfully",
-        success: true,
-        token: jwtToken,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      };
-    } else {
-      return { message: "Invalid Email and Passwrod", success: false };
-    }
+  const user = await db.collection("User").findOne({ email: email });
+
+  // ✅ Check if user exists
+  if (!user) {
+    return { message: "User not found", success: false };
   }
+
+  // ✅ Safely compare passwords
+  const IspasswordSame = await bcrypt.compare(password, user.password);
+
+  if (!IspasswordSame) {
+    return { message: "Invalid Email or Password", success: false };
+  }
+
+  // ✅ Generate JWT only if password matches
+  const jwtToken = jwt.sign({ name: user.name, email: user.email }, key, {
+    expiresIn: "24h",
+  });
+
+  return {
+    message: "Logged In successfully",
+    success: true,
+    token: jwtToken,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  };
+}
+
 
   static async addFav(id, email) {
     const db = getdb();
